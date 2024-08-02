@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: hefdfs
+server:
+  port: 8080
+hefdfs:
+  path: ${user.home}/hefdfs
+logging:
+  level:
+    root: error
+    io.github.hefrankeleyn.hefdfs: debug
