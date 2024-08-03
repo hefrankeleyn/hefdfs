@@ -2,7 +2,10 @@ package io.github.hefrankeleyn.hefdfs.controller;
 
 import static com.google.common.base.Preconditions.*;
 
+import io.github.hefrankeleyn.hefdfs.server.HttpSyncer;
+import jakarta.annotation.Resource;
 import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,8 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * @Date 2024/8/1
@@ -29,8 +34,14 @@ public class FileController {
     @Value("${server.port}")
     private String port;
 
+    @Value("${hefdfs.backup-url}")
+    private String backupURL;
+
+    @Resource
+    private HttpSyncer httpSyncer;
+
     @RequestMapping(value = "/upload", method = RequestMethod.POST)
-    public String upload(@RequestParam("file") MultipartFile file) {
+    public String upload(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         try {
             String dirPath = uploadPath + File.separator + port;
             File dirFile = new File(dirPath);
@@ -38,11 +49,23 @@ public class FileController {
                 boolean ok = dirFile.mkdirs();
                 log.debug("===> {} create dir {}", ok, dirPath);
             }
-            String fileName = file.getOriginalFilename();
+            String fileName = request.getHeader(HttpSyncer.XFILENAME);
+            boolean needSync = false;
+            if (Objects.isNull(fileName) || fileName.isBlank()) {
+                needSync = true;
+                fileName = file.getOriginalFilename();
+            } else {
+                fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+            }
             String filePath = dirPath + File.separator + fileName;
             File dest = new File(filePath);
             file.transferTo(dest);
             log.debug("===> success upload file: {}", filePath);
+            if (needSync) {
+                // 同步文件到backup
+                String syncFileName = httpSyncer.sync(dest, fileName, backupURL);
+                log.info("===> success sync file: {}", syncFileName);
+            }
             return dest.getName();
         } catch (Exception e) {
             throw new RuntimeException(e);

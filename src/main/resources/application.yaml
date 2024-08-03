@@ -5,6 +5,7 @@ server:
   port: 8080
 hefdfs:
   path: ${user.home}/hefdfs
+  backup-url: http://localhost:8081/upload
 logging:
   level:
     root: error
