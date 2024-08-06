@@ -22,6 +22,10 @@ public class HefDataConf {
     @Value("${hefdfs.backup-url}")
     private String backupURL;
 
+    @Value("${hefdfs.auto-md5}")
+    private Boolean autoMd5;
+
+
     public String findUploadDirPath() {
         return getUploadPath() + File.separator + getPort();
     }
@@ -50,12 +54,21 @@ public class HefDataConf {
         this.backupURL = backupURL;
     }
 
+    public Boolean getAutoMd5() {
+        return autoMd5;
+    }
+
+    public void setAutoMd5(Boolean autoMd5) {
+        this.autoMd5 = autoMd5;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(HefDataConf.class)
                 .add("uploadPath", uploadPath)
                 .add("port", port)
                 .add("backupURL", backupURL)
+                .add("autoMd5", autoMd5)
                 .toString();
     }
 }

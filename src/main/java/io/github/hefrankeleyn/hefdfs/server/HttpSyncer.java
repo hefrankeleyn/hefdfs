@@ -24,18 +24,21 @@ import java.nio.charset.StandardCharsets;
 public class HttpSyncer {
 
     public static final String XFILENAME = "X-fileName";
+    public static final String XORIGINALFILENAME = "X-original-fileName";
 
 
     @Resource
     private RestTemplate restTemplate;
 
-    public String sync(File file, String fileName, String url) {
+    public String sync(File file, String fileName, String originalFileName, String url) {
         HttpHeaders httpHeaders = new HttpHeaders();
         // 模拟表格
         httpHeaders.setContentType(MediaType.MULTIPART_FORM_DATA);
         // 添加标记，用于区分，是否是同步调用的
         String encodeFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+        String encodeOriginalFileName = URLEncoder.encode(originalFileName, StandardCharsets.UTF_8);
         httpHeaders.add(XFILENAME, encodeFileName);
+        httpHeaders.add(XORIGINALFILENAME, encodeOriginalFileName);
         // 创建请求体
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         // 用资源类包装一下，这样它就知道用流的方式去读

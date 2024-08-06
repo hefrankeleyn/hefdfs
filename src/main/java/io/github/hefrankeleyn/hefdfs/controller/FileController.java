@@ -2,6 +2,9 @@ package io.github.hefrankeleyn.hefdfs.controller;
 
 import static com.google.common.base.Preconditions.*;
 
+import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import io.github.hefrankeleyn.hefdfs.beans.HefFileMeta;
 import io.github.hefrankeleyn.hefdfs.conf.HefDataConf;
 import io.github.hefrankeleyn.hefdfs.server.HttpSyncer;
 import io.github.hefrankeleyn.hefdfs.utils.HefFileUtils;
@@ -11,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +22,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Objects;
 
 /**
@@ -35,9 +40,12 @@ public class FileController {
     @Resource
     private HttpSyncer httpSyncer;
 
+
+
     @RequestMapping(value = "/upload", method = RequestMethod.POST)
     public String upload(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         try {
+            // 1. 处理文件
             String dirPath = hefDataConf.findUploadDirPath();
             String fileName = request.getHeader(HttpSyncer.XFILENAME);
             String originalFileName = null;
@@ -48,14 +56,27 @@ public class FileController {
                 fileName = HefFileUtils.getUUIDFileName(originalFileName);
             } else {
                 fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+                originalFileName = URLDecoder.decode(request.getHeader(HttpSyncer.XORIGINALFILENAME), StandardCharsets.UTF_8);
             }
             String filePath = HefFileUtils.getFilePath(fileName, dirPath);
             File dest = new File(filePath);
             file.transferTo(dest);
             log.debug("===> success upload file: {}", filePath);
+            // 2. 保存meta
+            HefFileMeta hefFileMeta = new HefFileMeta(fileName, originalFileName, dest.length());
+            if (hefDataConf.getAutoMd5()) {
+                try (InputStream inputStream = new FileInputStream(dest)) {
+                    hefFileMeta.getTags().put("md5", DigestUtils.md5DigestAsHex(inputStream));
+                }
+            }
+            String metaName = fileName + HefFileUtils.META_SUFFIX;
+            String metaFilePath = HefFileUtils.getFilePath(metaName, dirPath);
+            HefFileUtils.write(hefFileMeta, new File(metaFilePath));
+
+            // 3. 同步
             if (needSync) {
                 // 同步文件到backup
-                String syncFileName = httpSyncer.sync(dest, fileName, hefDataConf.getBackupURL());
+                String syncFileName = httpSyncer.sync(dest, fileName, originalFileName, hefDataConf.getBackupURL());
                 log.info("===> success sync file: {}", syncFileName);
             }
             return dest.getName();
@@ -114,14 +135,13 @@ public class FileController {
     @RequestMapping(value = "/downloadBytes")
     @ResponseBody
     public byte[] downloadBytes(@RequestParam("fileName") String fileName, HttpServletResponse response) {
-        String dirPath = hefDataConf.getUploadPath() + File.separator + hefDataConf.getPort();
-        String filePath = dirPath + File.separator + fileName;
+        String dirPath = hefDataConf.findUploadDirPath();
+        String filePath = HefFileUtils.getFilePath(fileName, dirPath) + HefFileUtils.META_SUFFIX;
         File file = new File(filePath);
-        if (!file.exists() && file.isFile()) {
+        if (!file.exists()) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return null;
         }
-        checkState(file.exists() && file.isFile(), "file not exists: %s", filePath);
         // 需要添加一些头信息，响应才知道是下载的文件
         // 添加字符集
         response.setCharacterEncoding("UTF-8");
@@ -143,6 +163,17 @@ public class FileController {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return null;
         }
+    }
+
+    @RequestMapping(value = "/meta", method = RequestMethod.GET)
+    public String meta(@RequestParam("fileName") String fileName) {
+        String dirPath = hefDataConf.findUploadDirPath();
+        String filePath = HefFileUtils.getFilePath(fileName, dirPath);
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return Strings.lenientFormat("No found: %s", fileName);
+        }
+        return HefFileUtils.read(file);
     }
 
 

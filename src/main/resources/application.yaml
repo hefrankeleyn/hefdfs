@@ -6,6 +6,7 @@ server:
 hefdfs:
   path: ${user.home}/hefdfs
   backup-url: http://localhost:8081/upload
+  auto-md5: true
 logging:
   level:
     root: error

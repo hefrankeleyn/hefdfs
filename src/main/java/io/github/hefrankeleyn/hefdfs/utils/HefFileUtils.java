@@ -1,11 +1,16 @@
 package io.github.hefrankeleyn.hefdfs.utils;
 
+import com.google.gson.Gson;
+import io.github.hefrankeleyn.hefdfs.beans.HefFileMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.FileNameMap;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -14,6 +19,8 @@ import java.util.UUID;
  * @Author lifei
  */
 public class HefFileUtils {
+
+    public static final String META_SUFFIX = ".meta";
 
     private static final Logger log = LoggerFactory.getLogger(HefFileUtils.class);
 
@@ -57,4 +64,19 @@ public class HefFileUtils {
         return dirPath + File.separator+subDir+File.separator + uuidFileName;
     }
 
+    public static void write(HefFileMeta meta, File file) {
+        try {
+            Files.writeString(Paths.get(file.getAbsolutePath()), new Gson().toJson(meta), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        }catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String read(File file) {
+        try {
+            return Files.readString(Paths.get(file.getAbsolutePath()));
+        }catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
