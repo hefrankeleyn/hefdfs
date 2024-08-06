@@ -2,6 +2,7 @@ package io.github.hefrankeleyn.hefdfs.controller;
 
 import static com.google.common.base.Preconditions.*;
 
+import io.github.hefrankeleyn.hefdfs.conf.HefDataConf;
 import io.github.hefrankeleyn.hefdfs.server.HttpSyncer;
 import io.github.hefrankeleyn.hefdfs.utils.HefFileUtils;
 import jakarta.annotation.Resource;
@@ -10,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,14 +29,8 @@ public class FileController {
 
     private static final Logger log = LoggerFactory.getLogger(FileController.class);
 
-    @Value("${hefdfs.path}")
-    private String uploadPath;
-
-    @Value("${server.port}")
-    private String port;
-
-    @Value("${hefdfs.backup-url}")
-    private String backupURL;
+    @Resource
+    private HefDataConf hefDataConf;
 
     @Resource
     private HttpSyncer httpSyncer;
@@ -44,27 +38,24 @@ public class FileController {
     @RequestMapping(value = "/upload", method = RequestMethod.POST)
     public String upload(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         try {
-            String dirPath = uploadPath + File.separator + port;
-            File dirFile = new File(dirPath);
-            if (!dirFile.exists()) {
-                boolean ok = dirFile.mkdirs();
-                log.debug("===> {} create dir {}", ok, dirPath);
-            }
+            String dirPath = hefDataConf.findUploadDirPath();
             String fileName = request.getHeader(HttpSyncer.XFILENAME);
+            String originalFileName = null;
             boolean needSync = false;
             if (Objects.isNull(fileName) || fileName.isBlank()) {
                 needSync = true;
-                fileName = file.getOriginalFilename();
+                originalFileName = file.getOriginalFilename();
+                fileName = HefFileUtils.getUUIDFileName(originalFileName);
             } else {
                 fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
             }
-            String filePath = dirPath + File.separator + fileName;
+            String filePath = HefFileUtils.getFilePath(fileName, dirPath);
             File dest = new File(filePath);
             file.transferTo(dest);
             log.debug("===> success upload file: {}", filePath);
             if (needSync) {
                 // 同步文件到backup
-                String syncFileName = httpSyncer.sync(dest, fileName, backupURL);
+                String syncFileName = httpSyncer.sync(dest, fileName, hefDataConf.getBackupURL());
                 log.info("===> success sync file: {}", syncFileName);
             }
             return dest.getName();
@@ -72,6 +63,7 @@ public class FileController {
             throw new RuntimeException(e);
         }
     }
+
 
     /**
      * 下载
@@ -81,8 +73,8 @@ public class FileController {
      */
     @RequestMapping(value = "/download")
     public void download(@RequestParam("fileName") String fileName, HttpServletResponse response) {
-        String dirPath = uploadPath + File.separator + port;
-        String filePath = dirPath + File.separator + fileName;
+        String dirPath = hefDataConf.findUploadDirPath();
+        String filePath = HefFileUtils.getFilePath(fileName, dirPath);
         File file = new File(filePath);
         if (!(file.exists() && file.isFile())) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -122,7 +114,7 @@ public class FileController {
     @RequestMapping(value = "/downloadBytes")
     @ResponseBody
     public byte[] downloadBytes(@RequestParam("fileName") String fileName, HttpServletResponse response) {
-        String dirPath = uploadPath + File.separator + port;
+        String dirPath = hefDataConf.getUploadPath() + File.separator + hefDataConf.getPort();
         String filePath = dirPath + File.separator + fileName;
         File file = new File(filePath);
         if (!file.exists() && file.isFile()) {
