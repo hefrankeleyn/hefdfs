@@ -3,6 +3,7 @@ package io.github.hefrankeleyn.hefdfs.controller;
 import static com.google.common.base.Preconditions.*;
 
 import io.github.hefrankeleyn.hefdfs.server.HttpSyncer;
+import io.github.hefrankeleyn.hefdfs.utils.HefFileUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
@@ -93,11 +94,13 @@ public class FileController {
         response.setCharacterEncoding("UTF-8");
         // 文件类型： 方式一：指定具体的文件类型；方式二：指定其是一个二进制格式
         // 其它的文件类型：text/plain、application/pdf、application/vnd.ms-excel、image/jpeg、image/png
-        response.setContentType("application/octet-stream");
+//        response.setContentType("application/octet-stream");
+        response.setContentType(HefFileUtils.getMimeType(fileName));
         // 文件的名称，解决中文乱码
         String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
         // attachment （附件） 提示浏览器下载， inline 提示浏览器显示内容（如果支持的话）
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"");
+//        response.setHeader("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"");
+        response.setHeader("Content-Disposition", "inline; filename=\"" + encodedFileName + "\"");
         // 文件的长度
         response.setContentLength((int) file.length());
 
