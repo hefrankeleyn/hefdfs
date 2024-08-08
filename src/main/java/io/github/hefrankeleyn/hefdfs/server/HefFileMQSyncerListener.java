@@ -22,9 +22,9 @@ import java.util.Objects;
  */
 @Service
 @RocketMQMessageListener(topic = "${hefdfs.topic}", consumerGroup = "${hefdfs.consumer-group}")
-public class HefFileMQSyncer implements RocketMQListener<MessageExt> {
+public class HefFileMQSyncerListener implements RocketMQListener<MessageExt> {
 
-    private static final Logger log = LoggerFactory.getLogger(HefFileMQSyncer.class);
+    private static final Logger log = LoggerFactory.getLogger(HefFileMQSyncerListener.class);
 
     @Resource
     private HefDataConf hefDataConf;
@@ -53,6 +53,7 @@ public class HefFileMQSyncer implements RocketMQListener<MessageExt> {
             log.debug("===> meta file exists: {}", metaFilePath);
         } else {
             HefFileUtils.write(json, metaFile);
+            log.debug("===> meta file sync success: {}", metaFilePath);
         }
         // 下载文件
         File file = new File(filePath);
@@ -61,6 +62,7 @@ public class HefFileMQSyncer implements RocketMQListener<MessageExt> {
         } else {
             String url = Strings.lenientFormat("%s?fileName=%s", hefFileMeta.getDownloadURL(), hefFileMeta.getName());
             HefFileUtils.downloadFile(url, file);
+            log.debug("==> file sync success: {}", filePath);
         }
     }
 }

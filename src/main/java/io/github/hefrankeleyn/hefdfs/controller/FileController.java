@@ -178,7 +178,7 @@ public class FileController {
     @RequestMapping(value = "/meta", method = RequestMethod.GET)
     public String meta(@RequestParam("fileName") String fileName) {
         String dirPath = hefDataConf.getBaseDirPath();
-        String filePath = HefFileUtils.getFilePath(fileName, dirPath);
+        String filePath = HefFileUtils.getFilePath(fileName, dirPath) + HefFileUtils.META_SUFFIX;
         File file = new File(filePath);
         if (!file.exists()) {
             return Strings.lenientFormat("No found: %s", fileName);
