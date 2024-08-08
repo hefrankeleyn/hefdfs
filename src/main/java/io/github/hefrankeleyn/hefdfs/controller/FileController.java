@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import io.github.hefrankeleyn.hefdfs.beans.HefFileMeta;
 import io.github.hefrankeleyn.hefdfs.conf.HefDataConf;
+import io.github.hefrankeleyn.hefdfs.server.HefMQSyncer;
 import io.github.hefrankeleyn.hefdfs.server.HttpSyncer;
 import io.github.hefrankeleyn.hefdfs.utils.HefFileUtils;
 import jakarta.annotation.Resource;
@@ -40,6 +41,9 @@ public class FileController {
     @Resource
     private HttpSyncer httpSyncer;
 
+    @Resource
+    private HefMQSyncer hefMQSyncer;
+
 
 
     @RequestMapping(value = "/upload", method = RequestMethod.POST)
@@ -64,6 +68,7 @@ public class FileController {
             log.debug("===> success upload file: {}", filePath);
             // 2. 保存meta
             HefFileMeta hefFileMeta = new HefFileMeta(fileName, originalFileName, dest.length());
+            hefFileMeta.setDownloadURL(hefDataConf.getDownloadURL());
             if (hefDataConf.getAutoMd5()) {
                 try (InputStream inputStream = new FileInputStream(dest)) {
                     hefFileMeta.getTags().put("md5", DigestUtils.md5DigestAsHex(inputStream));
@@ -76,8 +81,17 @@ public class FileController {
             // 3. 同步
             if (needSync) {
                 // 同步文件到backup
-                String syncFileName = httpSyncer.sync(dest, fileName, originalFileName, hefDataConf.getBackupURL());
-                log.info("===> success sync file: {}", syncFileName);
+                if (hefDataConf.getAutoBackUp()) {
+                    try {
+                        String syncFileName = httpSyncer.sync(dest, fileName, originalFileName, hefDataConf.getBackupURL());
+                        log.info("===> success sync file: {}", syncFileName);
+                    }catch (Exception e) {
+                        log.error("===> error sync file: {}", e.getMessage());
+                        hefMQSyncer.sync(hefFileMeta);
+                    }
+                } else {
+                    hefMQSyncer.sync(hefFileMeta);
+                }
             }
             return dest.getName();
         } catch (Exception e) {

@@ -14,6 +14,7 @@ public class HefFileMeta {
     private String name;
     private String originFileName;
     private Long size;
+    private String downloadURL;
     private Map<String, String> tags = Maps.newHashMap();
 
     public HefFileMeta() {
@@ -57,6 +58,14 @@ public class HefFileMeta {
         this.tags = tags;
     }
 
+    public String getDownloadURL() {
+        return downloadURL;
+    }
+
+    public void setDownloadURL(String downloadURL) {
+        this.downloadURL = downloadURL;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(HefFileUtils.class)
@@ -64,6 +73,7 @@ public class HefFileMeta {
                 .add("originFileName", originFileName)
                 .add("size", size)
                 .add("tags", tags)
+                .add("downloadURL", downloadURL)
                 .toString();
     }
 }

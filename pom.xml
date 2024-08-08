@@ -18,7 +18,7 @@
         <guava.version>33.2.0-jre</guava.version>
         <gson.version>2.11.0</gson.version>
         <junit.version>4.13.2</junit.version>
-
+        <rocketmq-spring-boot-starter.version>2.3.0</rocketmq-spring-boot-starter.version>
     </properties>
     <dependencies>
         <dependency>
@@ -29,6 +29,12 @@
         <dependency>
             <groupId>org.reactivestreams</groupId>
             <artifactId>reactive-streams</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
+            <version>${rocketmq-spring-boot-starter.version}</version>
         </dependency>
 
         <dependency>

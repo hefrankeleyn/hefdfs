@@ -6,8 +6,15 @@ server:
 hefdfs:
   path: ${user.home}/hefdfs
   backup-url: http://localhost:8081/upload
+  download-url: http://localhost:8080/download
   auto-md5: true
+  auto-backup: false
+  topic: hef-dfs
 logging:
   level:
     root: error
     io.github.hefrankeleyn.hefdfs: debug
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: hefdfs-producer
