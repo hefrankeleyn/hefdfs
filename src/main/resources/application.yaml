@@ -2,14 +2,15 @@ spring:
   application:
     name: hefdfs
 server:
-  port: 8080
+  port: 8091
 hefdfs:
   path: ${user.home}/hefdfs
-  backup-url: http://localhost:8081/upload
-  download-url: http://localhost:8080/download
+  backup-url: http://localhost:8092/upload
+  download-url: http://localhost:8091/download
   auto-md5: true
   auto-backup: false
   topic: hef-dfs
+  consumer-group: C8091
 logging:
   level:
     root: error

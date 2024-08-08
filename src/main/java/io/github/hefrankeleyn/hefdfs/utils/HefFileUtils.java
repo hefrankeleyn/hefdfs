@@ -1,11 +1,21 @@
 package io.github.hefrankeleyn.hefdfs.utils;
 
+import static com.google.common.base.Preconditions.*;
 import com.google.gson.Gson;
 import io.github.hefrankeleyn.hefdfs.beans.HefFileMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.nio.file.Files;
@@ -72,11 +82,39 @@ public class HefFileUtils {
         }
     }
 
+    public static void write(String content, File file) {
+        try {
+            Files.writeString(Paths.get(file.getAbsolutePath()), content, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        }catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static String read(File file) {
         try {
             return Files.readString(Paths.get(file.getAbsolutePath()));
         }catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static void downloadFile(String url, File file) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        HttpEntity<?> request = new HttpEntity<>(headers);
+        ResponseEntity<Resource> response = restTemplate.exchange(url, HttpMethod.GET, request, Resource.class);
+        Resource body = response.getBody();
+        checkState(Objects.nonNull(body), "body isEmpty. download error: %s", url);
+        try (InputStream inputStream = body.getInputStream();
+             OutputStream outputStream = new FileOutputStream(file)){
+            byte[] bytes = new byte[1024];
+            int len = 0;
+            while ((len=inputStream.read(bytes))!=-1) {
+                outputStream.write(bytes, 0, len);
+            }
+            outputStream.flush();
+        }catch (Exception e) {
+            log.error("==> download file error: {}", e.getMessage());
         }
     }
 }

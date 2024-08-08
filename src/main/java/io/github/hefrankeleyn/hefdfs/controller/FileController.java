@@ -1,9 +1,6 @@
 package io.github.hefrankeleyn.hefdfs.controller;
 
-import static com.google.common.base.Preconditions.*;
-
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
 import io.github.hefrankeleyn.hefdfs.beans.HefFileMeta;
 import io.github.hefrankeleyn.hefdfs.conf.HefDataConf;
 import io.github.hefrankeleyn.hefdfs.server.HefMQSyncer;
@@ -23,7 +20,6 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Objects;
 
 /**
@@ -50,7 +46,7 @@ public class FileController {
     public String upload(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         try {
             // 1. 处理文件
-            String dirPath = hefDataConf.findUploadDirPath();
+            String dirPath = hefDataConf.getBaseDirPath();
             String fileName = request.getHeader(HttpSyncer.XFILENAME);
             String originalFileName = null;
             boolean needSync = false;
@@ -108,7 +104,7 @@ public class FileController {
      */
     @RequestMapping(value = "/download")
     public void download(@RequestParam("fileName") String fileName, HttpServletResponse response) {
-        String dirPath = hefDataConf.findUploadDirPath();
+        String dirPath = hefDataConf.getBaseDirPath();
         String filePath = HefFileUtils.getFilePath(fileName, dirPath);
         File file = new File(filePath);
         if (!(file.exists() && file.isFile())) {
@@ -149,7 +145,7 @@ public class FileController {
     @RequestMapping(value = "/downloadBytes")
     @ResponseBody
     public byte[] downloadBytes(@RequestParam("fileName") String fileName, HttpServletResponse response) {
-        String dirPath = hefDataConf.findUploadDirPath();
+        String dirPath = hefDataConf.getBaseDirPath();
         String filePath = HefFileUtils.getFilePath(fileName, dirPath) + HefFileUtils.META_SUFFIX;
         File file = new File(filePath);
         if (!file.exists()) {
@@ -181,7 +177,7 @@ public class FileController {
 
     @RequestMapping(value = "/meta", method = RequestMethod.GET)
     public String meta(@RequestParam("fileName") String fileName) {
-        String dirPath = hefDataConf.findUploadDirPath();
+        String dirPath = hefDataConf.getBaseDirPath();
         String filePath = HefFileUtils.getFilePath(fileName, dirPath);
         File file = new File(filePath);
         if (!file.exists()) {

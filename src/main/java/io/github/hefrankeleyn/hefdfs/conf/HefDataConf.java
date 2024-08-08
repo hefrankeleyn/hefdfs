@@ -35,7 +35,7 @@ public class HefDataConf {
     private String topic;
 
 
-    public String findUploadDirPath() {
+    public String getBaseDirPath() {
         return getUploadPath() + File.separator + getPort();
     }
 
